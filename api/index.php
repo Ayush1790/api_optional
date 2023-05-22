@@ -5,11 +5,8 @@ use Phalcon\Mvc\Micro;
 use Phalcon\Di\FactoryDefault;
 use Phalcon\Events\Event;
 use Phalcon\Events\Manager as EventsManager;
-use Phalcon\Acl\Role;
-use Phalcon\Acl\Component;
 use Phalcon\Acl\Adapter\Memory;
 use handler\Token;
-
 
 require './vendor/autoload.php';
 $loader = new Loader();
@@ -17,7 +14,7 @@ $loader = new Loader();
 $loader->registerNamespaces(
     [
         'MyApp\Models' => __DIR__ . '/models/',
-        'handler'=> __DIR__.'/handler/'
+        'handler' => __DIR__ . '/handler/'
     ]
 );
 $loader->register();
@@ -50,12 +47,10 @@ $eventsManager->attach(
             []
         );
         $acl->allow('admin', 'products', '*');
-        $obj=new Token();
-        $token=$obj->getToken($app->request->get('role'));
-        echo $token;die;
-
-
-        if (!$acl->isAllowed($app->request->get('role'), 'products', '*')) {
+        $obj = new Token();
+        $token = $obj->getToken($app->request->get('role'));
+        $token = $obj->decodeToken($token);
+        if (!$acl->isAllowed($token, 'products', '*')) {
             echo "You are not authorised to view this.";
             die;
         }

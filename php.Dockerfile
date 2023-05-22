@@ -1,7 +1,7 @@
 FROM php:7.4.3-apache
 ARG XDEBUG_VERSION="xdebug-2.9.2"
 ARG PSR_VERSION=0.7.0
-ARG PHALCON_VERSION=4.0.2
+ARG PHALCON_VERSION=4.1.1
 ARG PHALCON_EXT_PATH=php7/64bits
 RUN apt-get update
 RUN apt-get install -y libcurl4-openssl-dev ssh nano pkg-config libssl-dev
