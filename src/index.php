@@ -3,7 +3,13 @@
 use Phalcon\Loader;
 use Phalcon\Mvc\Micro;
 use Phalcon\Di\FactoryDefault;
-use Phalcon\Http\Response;
+use Phalcon\Events\Event;
+use Phalcon\Events\Manager as EventsManager;
+use Phalcon\Acl\Role;
+use Phalcon\Acl\Component;
+use Phalcon\Acl\Adapter\Memory;
+use handler\Token;
+
 
 require './vendor/autoload.php';
 $loader = new Loader();
@@ -11,6 +17,7 @@ $loader = new Loader();
 $loader->registerNamespaces(
     [
         'MyApp\Models' => __DIR__ . '/models/',
+        'handler'=> __DIR__.'/handler/'
     ]
 );
 $loader->register();
@@ -21,94 +28,106 @@ $container->set(
     function () {
         $mongo = new MongoDB\Client('mongodb+srv://myAtlasDBUser:myatlas-001@myatlas' .
             'clusteredu.aocinmp.mongodb.net/?retryWrites=true&w=majority');
-        return $mongo->movies->movie;
+        return $mongo->products->product;
     },
     true
 );
+// Create a events manager
+$eventsManager = new EventsManager();
+
+$eventsManager->attach(
+    'micro:beforeExecuteRoute',
+    function (Event $event, $app) {
+        $acl = new Memory();
+
+        /**
+         * Add the roles
+         */
+        $acl->addRole('user');
+        $acl->addRole('admin');
+        $acl->addComponent(
+            'products',
+            []
+        );
+        $acl->allow('admin', 'products', '*');
+        $obj=new Token();
+        $token=$obj->getToken($app->request->get('role'));
+        echo $token;die;
+
+
+        if (!$acl->isAllowed($app->request->get('role'), 'products', '*')) {
+            echo "You are not authorised to view this.";
+            die;
+        }
+    }
+);
 $app = new Micro($container);
 
-$app->get(
-    '/api/movie',
-    function () use ($app) {
-        $movie = $this->mongo->find();
+// Bind the events manager to the app
+$app->setEventsManager($eventsManager);
 
-        foreach ($movie as $movies) {
-            $data[] = [
-                'id'   => $movies->_id,
-                'name' => $movies->name,
-                'year' =>  $movies->year
+
+// Searches for product with $name in their name
+$app->get(
+    '/products',
+    function () use ($app) {
+        if (array_key_exists('per_page', $this->request->get())) {
+            $per_page = $this->request->get('per_page');
+        } else {
+            $per_page = 2;
+        }
+        if (array_key_exists('page', $this->request->get())) {
+            $page = $this->request->get('page');
+        } else {
+            $page = 0;
+        }
+        $product = $this->mongo->find([], ["limit" => (int)$per_page, "skip" => (int)$per_page * $page]);
+        foreach ($product as $value) {
+            $result[] = [
+                'id'   =>  $value->_id,
+                'name' =>  $value->name,
+                'price' => $value->price,
+                'color' => $value->color,
             ];
         }
-
-        echo json_encode($data);
+        echo json_encode($result);
     }
 );
-
-// Searches for movie with $name in their name
 $app->get(
-    '/api/movie/search/{name}',
+    '/products/search/{name}',
     function ($name) use ($app) {
-        $name = str_replace("%20", " ", $name);
-        $movie = $this->mongo->findOne(['name' => $name]);
-        $data = [];
-        $data[] = [
-            'id'   => $movie->_id,
-            'name' => $movie->name,
-            'year' => $movie->year
-        ];
-
-        echo json_encode($data);
-    }
-);
-$app->get(
-    '/api/movie/{id:[0-9]+}',
-    function ($id) use ($app) {
-        $movie = $this->mongo->findOne(['id' => $id]);
-        $response = new Response();
-        if ($movie === false) {
-            $response->setJsonContent(
-                [
-                    'status' => 'NOT-FOUND'
-                ]
-            );
-        } else {
-            $response->setJsonContent(
-                [
-                    'status' => 'FOUND',
-                    'data'   => [
-                        'id'   => $movie->id,
-                        'name' => $movie->name,
-                        'year' => $movie->year,
-                    ]
-                ]
-            );
+        $product = $this->mongo->find();
+        $data = array();
+        $data = explode("%20", $name);
+        foreach ($product as $products) {
+            foreach ($data as $value) {
+                $pattern = "/$value/i";
+                if (preg_match_all($pattern, $products->name)) {
+                    $result[] = [
+                        'id'   =>  $products->_id,
+                        'name' =>  $products->name,
+                        'price' => $products->price,
+                        'color' => $products->color,
+                    ];
+                }
+            }
         }
-        return $response;
+        if (empty($result)) {
+            echo "data not matched";
+        } else {
+            echo json_encode($result);
+        }
     }
 );
-$app->post(
-    '/api/movie',
+
+$app->notFound(
     function () use ($app) {
-        $movie=json_decode(file_get_contents("php://input"));
-        $status = $this->mongo->insertOne(['name' => $movie[0]->name, 'year' => $movie[0]->year, 'id' => $movie[0]->id]);
-    }
-);
+        $app->response->setStatusCode(404, 'Not Found');
+        $app->response->sendHeaders();
 
-$app->put(
-    '/api/movie/{id:[0-9]+}',
-    function ($id) use ($app) {
-        $movies = $app->request->getJsonRawBody();
-        $status = $this->mongo->updateOne(['id' => $id], ['$set' => ['name' => $movies[0]->name, 'year' => $movies[0]->year]]);
- 
-    }
-);
-
-// Deletes movie based on primary key
-$app->delete(
-    '/api/movie/{id:[0-9]+}',
-    function ($id) use ($app) {
-        $status = $this->mongo->deleteOne(['id' => $id]);
-
+        $message = 'Nothing to see here. Move along....';
+        $app->response->setContent($message);
+        $app->response->send();
     }
 );
 
