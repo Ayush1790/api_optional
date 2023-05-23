@@ -54,7 +54,11 @@ $eventsManager->attach(
         $acl->allow('user', 'products', '*');
         $acl->allow('admin', 'orders', '*');
         $obj = new Token();
-        $token = $obj->decodeToken($app->request->get('role'));
+        if ($app->request->get('role') == 'admin') {
+            $token='admin';
+        } else {
+            $token = $obj->decodeToken($app->request->get('role'));
+        }
         if (!$acl->isAllowed($token, 'products', '*')) {
             echo "You are not authorised to view this.";
             die;
