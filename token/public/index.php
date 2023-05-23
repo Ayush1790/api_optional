@@ -7,7 +7,7 @@ use Phalcon\Mvc\Application;
 use Phalcon\Url;
 use Phalcon\Db\Adapter\Pdo\Mysql;
 use Phalcon\Config;
-
+use Phalcon\Mvc\Dispatcher;
 $config = new Config([]);
 
 // Define some absolute path constants to aid in locating resources
@@ -21,6 +21,11 @@ $loader->registerDirs(
     [
         APP_PATH . "/controllers/",
         APP_PATH . "/models/",
+    ]
+);
+$loader->registerNamespaces(
+    [
+        'MyApp\Controller'=>APP_PATH.'/controllers/',
     ]
 );
 
@@ -54,6 +59,19 @@ $container->set(
         return $mongo->products->user;
     },
     true
+);
+
+$container->set(
+    'dispatcher',
+    function () {
+        $dispatcher = new Dispatcher();
+
+        $dispatcher->setDefaultNamespace(
+            'MyApp\Controller'
+        );
+
+        return $dispatcher;
+    }
 );
 
 $application = new Application($container);

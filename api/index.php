@@ -25,7 +25,7 @@ $container->set(
     function () {
         $mongo = new MongoDB\Client('mongodb+srv://myAtlasDBUser:myatlas-001@myatlas' .
             'clusteredu.aocinmp.mongodb.net/?retryWrites=true&w=majority');
-        return $mongo->products->product;
+        return $mongo->products;
     },
     true
 );
@@ -46,10 +46,19 @@ $eventsManager->attach(
             'products',
             []
         );
+        $acl->addComponent(
+            'orders',
+            []
+        );
         $acl->allow('admin', 'products', '*');
+        $acl->allow('user', 'products', '*');
+        $acl->allow('admin', 'orders', '*');
         $obj = new Token();
-        $token = $obj->getToken($app->request->get('role'));
-        $token = $obj->decodeToken($token);
+        if ($app->request->get('role') == 'admin') {
+            $token='admin';
+        } else {
+            $token = $obj->decodeToken($app->request->get('role'));
+        }
         if (!$acl->isAllowed($token, 'products', '*')) {
             echo "You are not authorised to view this.";
             die;
@@ -65,7 +74,7 @@ $app->setEventsManager($eventsManager);
 // Searches for product with $name in their name
 $app->get(
     '/products',
-    function () use ($app) {
+    function () {
         if (array_key_exists('per_page', $this->request->get())) {
             $per_page = $this->request->get('per_page');
         } else {
@@ -76,7 +85,7 @@ $app->get(
         } else {
             $page = 0;
         }
-        $product = $this->mongo->find([], ["limit" => (int)$per_page, "skip" => (int)$per_page * $page]);
+        $product = $this->mongo->product->find([], ["limit" => (int)$per_page, "skip" => (int)$per_page * $page]);
         foreach ($product as $value) {
             $result[] = [
                 'id'   =>  $value->_id,
@@ -90,8 +99,8 @@ $app->get(
 );
 $app->get(
     '/products/search/{name}',
-    function ($name) use ($app) {
-        $product = $this->mongo->find();
+    function ($name) {
+        $product = $this->mongo->product->find();
         $data = array();
         $data = explode("%20", $name);
         foreach ($product as $products) {
@@ -112,6 +121,66 @@ $app->get(
         } else {
             echo json_encode($result);
         }
+    }
+);
+
+$app->get(
+    '/findUser',
+    function () {
+        $res = $this->mongo->user->findOne(['$and' => [['email' => $_GET['email'], 'pswd' => $_GET['pswd']]]]);
+        $data = [
+            'id' => $res->_id,
+            'role' => $res->role
+        ];
+        return json_encode($data);
+    }
+);
+
+$app->post(
+    '/adduser',
+    function () {
+        $this->mongo->user->insertOne($_POST);
+    }
+);
+
+$app->post(
+    '/order/create',
+    function () use ($app) {
+        $data = $app->request->getJsonRawBody();
+        $data = (array)$data;
+        $this->mongo->order->insertOne($data);
+    }
+);
+
+$app->put(
+    '/order/update',
+    function () use ($app) {
+        $data = $app->request->getJsonRawBody();
+        $data = (array)$data;
+        $this->mongo->order->updateOne(
+            ['id' => $data['id']],
+            ['$set' => $data]
+        );
+    }
+);
+
+$app->get(
+    '/allOrders',
+    function () {
+        $response = $this->mongo->order->find();
+        $order = [];
+        foreach ($response as $value) {
+            $data = [
+                'product_id' => $value->id,
+                'name' => $value->name,
+                'price' => $value->price,
+                'qty' => $value->qty,
+                'customer_name' => $value->customer_name,
+                'pincode' => $value->pin
+            ];
+            array_push($order, $data);
+        }
+        return json_encode($order);
     }
 );
 

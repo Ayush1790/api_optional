@@ -1,0 +1,24 @@
+<table class="table table-bordered table-striped">
+    <caption>table that shows order details</caption>
+    <thead>
+        <tr>
+            <th>Product_id</th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Customer name</th>
+            <th>Pin code</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php
+        foreach ($data as $value) {
+            echo "<tr>";
+            foreach ($value as $data) {
+                echo "<td>$data</td>";
+            }
+            echo "</tr>";
+        }
+        ?>
+    </tbody>
+</table>
