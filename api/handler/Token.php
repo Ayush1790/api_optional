@@ -1,6 +1,7 @@
 <?php
 
 namespace handler;
+
 class Token
 {
     public function getToken($role)

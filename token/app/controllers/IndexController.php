@@ -1,5 +1,7 @@
 <?php
 
+namespace MyApp\Controller;
+
 use Phalcon\Mvc\Controller;
 use Phalcon\Security\JWT\Builder;
 use Phalcon\Security\JWT\Signer\Hmac;
@@ -10,22 +12,22 @@ class IndexController extends Controller
 {
     public function indexAction()
     {
-        $this->response->redirect('login');
+        $this->response->redirect('signup');
     }
 
-    public function getTokenAction()
+    public function getTokenAction($role)
     {
         $signer  = new Hmac();
 
         // Builder object
         $builder = new Builder($signer);
 
-        $now        = new DateTimeImmutable();
+        $now        = new \DateTimeImmutable();
         $issued     = $now->getTimestamp();
         $notBefore  = $now->modify('-1 minute')->getTimestamp();
         $expires    = $now->modify('+1 day')->getTimestamp();
         $passphrase = 'QcMpZ&b&mo3TPsPk668J6QH8JA$&U&m2';
-        $role = $this->request->getPost('role');
+        // $role = $this->request->getPost('role');
         // Setup
         $builder
             ->setAudience('https://target.phalcon.io')  // aud
