@@ -1,13 +1,11 @@
 <?php
 
 namespace handler;
-
-session_start();
 class Token
 {
     public function getToken($role)
     {
-        $url = "http://172.21.0.5/index/index";
+        $url = "http://172.21.0.6/index/getToken";
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -17,7 +15,7 @@ class Token
     }
     public function decodeToken($token)
     {
-        $url = "http://172.21.0.5/index/decodeToken";
+        $url = "http://172.21.0.6/index/decodeToken";
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_URL, $url);

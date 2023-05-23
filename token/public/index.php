@@ -46,6 +46,16 @@ $container->set(
     }
 );
 
+$container->set(
+    'mongo',
+    function () {
+        $mongo = new MongoDB\Client('mongodb+srv://myAtlasDBUser:myatlas-001@myatlas' .
+            'clusteredu.aocinmp.mongodb.net/?retryWrites=true&w=majority');
+        return $mongo->products->user;
+    },
+    true
+);
+
 $application = new Application($container);
 
 try {

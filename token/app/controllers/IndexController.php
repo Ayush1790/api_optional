@@ -10,6 +10,11 @@ class IndexController extends Controller
 {
     public function indexAction()
     {
+        $this->response->redirect('login');
+    }
+
+    public function getTokenAction()
+    {
         $signer  = new Hmac();
 
         // Builder object
@@ -20,7 +25,7 @@ class IndexController extends Controller
         $notBefore  = $now->modify('-1 minute')->getTimestamp();
         $expires    = $now->modify('+1 day')->getTimestamp();
         $passphrase = 'QcMpZ&b&mo3TPsPk668J6QH8JA$&U&m2';
-        $role=$this->request->getPost('role');
+        $role = $this->request->getPost('role');
         // Setup
         $builder
             ->setAudience('https://target.phalcon.io')  // aud
@@ -44,7 +49,7 @@ class IndexController extends Controller
     public function decodeTokenAction()
     {
         $parser = new Parser();
-        $token=$this->request->getPost('token');
+        $token = $this->request->getPost('token');
         $tokenObject = $parser->parse($token);
         $now = new \DateTimeImmutable();
         $expirs = $now->getTimestamp();
